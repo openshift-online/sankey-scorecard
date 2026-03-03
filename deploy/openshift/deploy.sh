@@ -9,6 +9,11 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Proxy configuration (set these if the cluster requires a proxy for external access)
+HTTP_PROXY="${HTTP_PROXY:-}"
+HTTPS_PROXY="${HTTPS_PROXY:-}"
+NO_PROXY="${NO_PROXY:-.svc,.cluster.local,localhost,127.0.0.1}"
+
 # Route configuration
 # ROUTE_HOST: explicit hostname for the route (required on managed platforms
 #   that restrict ingress to a specific router shard, e.g. apps.int.* domains).
@@ -98,7 +103,7 @@ oc rollout status deployment/sankey-scorecard-postgres -n "${NAMESPACE}" --timeo
 
 # Apply application manifests (deployment.yaml uses ${NAMESPACE} for the image path)
 echo "==> Applying application manifests..."
-envsubst '${NAMESPACE}' < "${SCRIPT_DIR}/deployment.yaml" | oc apply -n "${NAMESPACE}" -f -
+envsubst '${NAMESPACE} ${HTTP_PROXY} ${HTTPS_PROXY} ${NO_PROXY}' < "${SCRIPT_DIR}/deployment.yaml" | oc apply -n "${NAMESPACE}" -f -
 oc apply -n "${NAMESPACE}" -f "${SCRIPT_DIR}/service.yaml"
 envsubst '${ROUTE_HOST} ${ROUTE_SHARD}' < "${SCRIPT_DIR}/route.yaml" | oc apply -n "${NAMESPACE}" -f -
 

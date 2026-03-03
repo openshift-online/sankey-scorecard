@@ -47,6 +47,12 @@ spec:
                 secretKeyRef:
                   name: sankey-scorecard-db
                   key: database-url
+            - name: HTTP_PROXY
+              value: "${HTTP_PROXY}"
+            - name: HTTPS_PROXY
+              value: "${HTTPS_PROXY}"
+            - name: NO_PROXY
+              value: "${NO_PROXY}"
           livenessProbe:
             httpGet:
               path: /healthz
