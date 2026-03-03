@@ -9,6 +9,15 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Route configuration
+# ROUTE_HOST: explicit hostname for the route (required on managed platforms
+#   that restrict ingress to a specific router shard, e.g. apps.int.* domains).
+#   Leave unset to auto-generate a hostname from the cluster domain.
+# ROUTE_SHARD: router shard label value (default: internal for managed platforms).
+#   Set to "" to omit shard routing on self-managed clusters.
+ROUTE_HOST="${ROUTE_HOST:-}"
+ROUTE_SHARD="${ROUTE_SHARD:-internal}"
+
 # Database credentials (override via env vars if desired)
 DB_USER="${DB_USER:-scorecard}"
 DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -hex 24)}"
@@ -90,9 +99,8 @@ oc rollout status deployment/sankey-scorecard-postgres -n "${NAMESPACE}" --timeo
 # Apply application manifests (deployment.yaml uses ${NAMESPACE} for the image path)
 echo "==> Applying application manifests..."
 envsubst '${NAMESPACE}' < "${SCRIPT_DIR}/deployment.yaml" | oc apply -n "${NAMESPACE}" -f -
-for manifest in service.yaml route.yaml; do
-    oc apply -n "${NAMESPACE}" -f "${SCRIPT_DIR}/${manifest}"
-done
+oc apply -n "${NAMESPACE}" -f "${SCRIPT_DIR}/service.yaml"
+envsubst '${ROUTE_HOST} ${ROUTE_SHARD}' < "${SCRIPT_DIR}/route.yaml" | oc apply -n "${NAMESPACE}" -f -
 
 # Restart the deployment to pick up any updated image
 echo "==> Restarting deployment..."

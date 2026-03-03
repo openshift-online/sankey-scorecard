@@ -4,7 +4,9 @@ metadata:
   name: sankey-scorecard
   labels:
     app: sankey-scorecard
+    shard: ${ROUTE_SHARD}
 spec:
+  host: "${ROUTE_HOST}"
   to:
     kind: Service
     name: sankey-scorecard
