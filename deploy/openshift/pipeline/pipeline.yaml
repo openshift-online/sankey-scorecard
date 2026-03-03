@@ -7,7 +7,7 @@ spec:
   params:
     - name: git-url
       type: string
-      default: ssh://git@ssh.github.com:443/tiwillia/sankey-scorecard.git
+      default: https://github.com/openshift-online/sankey-scorecard.git
     - name: git-revision
       type: string
       default: main

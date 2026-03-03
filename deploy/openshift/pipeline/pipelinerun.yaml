@@ -19,8 +19,6 @@ spec:
         #   value: http://your-proxy-host:3128
         # - name: NO_PROXY
         #   value: ".svc,.cluster.local,localhost,127.0.0.1,image-registry.openshift-image-registry.svc"
-        - name: GIT_SSH_COMMAND
-          value: "ssh -o StrictHostKeyChecking=no"
   workspaces:
     - name: source
       volumeClaimTemplate:
