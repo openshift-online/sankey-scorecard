@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sankey-scorecard
+  labels:
+    app: sankey-scorecard
+spec:
+  selector:
+    app: sankey-scorecard
+    component: app
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP

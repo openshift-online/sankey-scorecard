@@ -1,0 +1,15 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: sankey-scorecard
+  labels:
+    app: sankey-scorecard
+spec:
+  to:
+    kind: Service
+    name: sankey-scorecard
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

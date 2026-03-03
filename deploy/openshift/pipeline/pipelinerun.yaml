@@ -1,0 +1,33 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: sankey-scorecard-build-
+  namespace: rosa-dashboard--pipeline
+spec:
+  pipelineRef:
+    name: sankey-scorecard-build
+  taskRunTemplate:
+    serviceAccountName: pipeline
+    podTemplate:
+      securityContext:
+        fsGroup: 1003930000
+      env:
+        # Configure proxy settings if required by your cluster environment
+        # - name: HTTPS_PROXY
+        #   value: http://your-proxy-host:3128
+        # - name: HTTP_PROXY
+        #   value: http://your-proxy-host:3128
+        # - name: NO_PROXY
+        #   value: ".svc,.cluster.local,localhost,127.0.0.1,image-registry.openshift-image-registry.svc"
+        - name: GIT_SSH_COMMAND
+          value: "ssh -o StrictHostKeyChecking=no"
+  workspaces:
+    - name: source
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          storageClassName: rh-internal-iscsi
+          resources:
+            requests:
+              storage: 1Gi

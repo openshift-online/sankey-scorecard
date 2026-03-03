@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sankey Scorecard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Text:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@rhds/elements@4.0.2/elements/rh-table/rh-table-lightdom.css">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@rhds/elements/": "https://cdn.jsdelivr.net/npm/@rhds/elements@4.0.2/elements/"
+    },
+    "scopes": {
+      "https://cdn.jsdelivr.net/npm/": {
+        "@floating-ui/core": "https://cdn.jsdelivr.net/npm/@floating-ui/core@/dist/floating-ui.core.mjs",
+        "@floating-ui/dom": "https://cdn.jsdelivr.net/npm/@floating-ui/dom@/dist/floating-ui.dom.mjs",
+        "@lit/context": "https://cdn.jsdelivr.net/npm/@lit/context@1.1.6/development/index.js",
+        "@lit/reactive-element": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/reactive-element.js",
+        "@lit/reactive-element/decorators/": "https://cdn.jsdelivr.net/npm/@lit/reactive-element@2.1.2/decorators/",
+        "@patternfly/pfe-core": "https://cdn.jsdelivr.net/npm/@patternfly/pfe-core@5.0.5/core.js",
+        "@patternfly/pfe-core/": "https://cdn.jsdelivr.net/npm/@patternfly/pfe-core@5.0.5/",
+        "@rhds/elements/lib/": "https://cdn.jsdelivr.net/npm/@rhds/elements@4.0.2/lib/",
+        "@rhds/icons": "https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/icons.js",
+        "@rhds/icons/": "https://cdn.jsdelivr.net/npm/@rhds/icons@2.1.0/",
+        "@rhds/tokens/": "https://cdn.jsdelivr.net/npm/@rhds/tokens@3.0.2/",
+        "lit": "https://cdn.jsdelivr.net/npm/lit@3.3.2/index.js",
+        "lit/": "https://cdn.jsdelivr.net/npm/lit@3.3.2/",
+        "lit-element/lit-element.js": "https://cdn.jsdelivr.net/npm/lit-element@4.2.2/lit-element.js",
+        "lit-html": "https://cdn.jsdelivr.net/npm/lit-html@3.3.2/lit-html.js",
+        "lit-html/": "https://cdn.jsdelivr.net/npm/lit-html@3.3.2/",
+        "tslib": "https://cdn.jsdelivr.net/npm/tslib@2.8.1/tslib.es6.mjs"
+      }
+    }
+  }
+  </script>
+
+  <script type="module">
+    import "@rhds/elements/rh-table/rh-table.js";
+    import "@rhds/elements/rh-accordion/rh-accordion.js";
+    import "@rhds/elements/rh-spinner/rh-spinner.js";
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Red Hat Text', 'RedHatText', 'Overpass', Helvetica, Arial, sans-serif;
+      background: #f0f0f0;
+      color: #151515;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Red Hat Display', 'RedHatDisplay', 'Overpass', Helvetica, Arial, sans-serif;
+    }
+
+    /* Masthead */
+    .masthead {
+      background: #151515;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 60px;
+      border-bottom: 3px solid #ee0000;
+    }
+
+    .masthead-title {
+      font-family: 'Red Hat Display', sans-serif;
+      font-size: 18px;
+      font-weight: 500;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .masthead-title .rh-logo {
+      width: 28px;
+      height: 28px;
+    }
+
+    .btn-masthead {
+      background: transparent;
+      border: 1px solid #6a6e73;
+      color: #e0e0e0;
+      padding: 6px 16px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .btn-masthead:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: #fff;
+      color: #fff;
+    }
+
+    .btn-masthead:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* Page layout */
+    .page-content {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Methodology accordion */
+    rh-accordion {
+      margin-bottom: 24px;
+    }
+
+    .methodology-content h3 {
+      font-size: 15px;
+      font-weight: 500;
+      margin: 20px 0 8px;
+      color: #151515;
+    }
+
+    .methodology-content h3:first-child {
+      margin-top: 0;
+    }
+
+    .methodology-content p {
+      margin: 0 0 10px;
+      color: #3c3f42;
+    }
+
+    .methodology-content code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+
+    .methodology-content table {
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 13px;
+    }
+
+    .methodology-content th,
+    .methodology-content td {
+      border: 1px solid #d2d2d2;
+      padding: 6px 14px;
+      text-align: left;
+    }
+
+    .methodology-content th {
+      background: #f0f0f0;
+      font-weight: 500;
+    }
+
+    /* Scorecard table */
+    .scorecard-card {
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+
+    rh-table {
+      --rh-table-row-background-color-hover: #f8f8f8;
+    }
+
+    .scorecard-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .scorecard-table th {
+      text-align: left;
+      font-weight: 500;
+      font-size: 13px;
+      color: #3c3f42;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      padding: 10px 16px;
+    }
+
+    .scorecard-table th:hover {
+      color: #151515;
+    }
+
+    .scorecard-table th .sort-arrow {
+      margin-left: 4px;
+      font-size: 10px;
+      opacity: 0.3;
+      vertical-align: middle;
+    }
+
+    .scorecard-table th.sorted .sort-arrow {
+      opacity: 1;
+      color: #06c;
+    }
+
+    .scorecard-table td {
+      padding: 8px 16px;
+    }
+
+    /* Team rows - indented */
+    .row-team td:first-child {
+      padding-left: 40px;
+    }
+
+    /* Pillar group rows */
+    .row-pillar td {
+      font-weight: 500;
+      background: #fafafa;
+      color: #151515;
+      border-top: 1px solid #d2d2d2;
+    }
+
+    .row-pillar td:first-child {
+      padding-left: 24px;
+    }
+
+    /* Org header rows */
+    .row-org td {
+      font-weight: 700;
+      font-family: 'Red Hat Display', sans-serif;
+      font-size: 15px;
+      background: #f0f0f0;
+      color: #151515;
+      padding-top: 14px;
+      padding-bottom: 14px;
+      border-top: 2px solid #d2d2d2;
+    }
+
+    .row-org:first-child td {
+      border-top: none;
+    }
+
+    /* Grade colors */
+    .grade {
+      font-weight: 700;
+      font-size: 15px;
+      font-family: 'Red Hat Display', sans-serif;
+    }
+
+    .grade-A, .grade-B { color: #3e8635; }
+    .grade-C { color: #f0ab00; }
+    .grade-D, .grade-F { color: #c9190b; }
+    .grade-nil { color: #8a8d90; }
+
+    /* Loading state */
+    .state-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 0;
+      gap: 20px;
+      color: #6a6e73;
+      font-size: 15px;
+    }
+
+    /* Error state */
+    .state-error {
+      text-align: center;
+      padding: 60px 24px;
+      color: #151515;
+    }
+
+    .state-error .error-message {
+      color: #c9190b;
+      margin-bottom: 16px;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: #06c;
+      cursor: pointer;
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .btn-link:hover { text-decoration: underline; }
+
+    /* Empty state */
+    .state-empty {
+      text-align: center;
+      padding: 80px 24px;
+      color: #6a6e73;
+    }
+
+    .state-empty p { margin: 4px 0; }
+
+    /* Filter bar */
+    .filter-bar {
+      background: #fff;
+      border: 1px solid #d2d2d2;
+      border-radius: 4px;
+      padding: 12px 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 13px;
+    }
+
+    .filter-bar label {
+      font-weight: 500;
+      color: #151515;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filter-bar input[type="date"],
+    .filter-bar select {
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: 13px;
+      padding: 4px 8px;
+      border: 1px solid #d2d2d2;
+      border-radius: 3px;
+      background: #fff;
+      color: #151515;
+    }
+
+    .filter-bar input[type="date"]:focus,
+    .filter-bar select:focus {
+      outline: 2px solid #06c;
+      outline-offset: 1px;
+    }
+
+    .btn-filter {
+      background: #06c;
+      color: #fff;
+      border: none;
+      padding: 5px 16px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.15s ease;
+    }
+
+    .btn-filter:hover {
+      background: #004080;
+    }
+
+    .btn-filter-clear {
+      background: transparent;
+      color: #06c;
+      border: 1px solid #d2d2d2;
+      padding: 5px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: 'Red Hat Text', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .btn-filter-clear:hover {
+      background: #f0f0f0;
+    }
+
+    /* Metadata line */
+    .meta-line {
+      font-size: 12px;
+      color: #6a6e73;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+
+    /* Data scope info */
+    .scope-info {
+      background: #fff;
+      border: 1px solid #d2d2d2;
+      border-radius: 4px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #3c3f42;
+    }
+
+    .scope-info-title {
+      font-weight: 500;
+      font-size: 14px;
+      color: #151515;
+      margin: 0 0 8px;
+      font-family: 'Red Hat Display', sans-serif;
+    }
+
+    .scope-info p {
+      margin: 0 0 6px;
+    }
+
+    .scope-info p:last-child {
+      margin-bottom: 0;
+    }
+
+    .scope-periods {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 24px;
+      margin-top: 8px;
+    }
+
+    .scope-period {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .scope-period-label {
+      font-weight: 500;
+      color: #151515;
+    }
+
+    .scope-period-dates {
+      color: #6a6e73;
+    }
+
+    /* Numeric cells - consistent width digits */
+    .col-numeric {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Tooltip styling */
+    th[title] {
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      text-decoration-color: #8a8d90;
+      text-underline-offset: 3px;
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <h1 class="masthead-title">
+      <svg class="rh-logo" viewBox="0 0 613 145" xmlns="http://www.w3.org/2000/svg" fill="#ee0000">
+        <path d="M127.47 83.49c12.51 0 30.61-2.58 30.61-17.46a14 14 0 0 0-.31-3.42l-7.45-32.36c-1.72-7.12-3.23-10.35-15.73-16.6C124.89 8.69 103.76.5 97.51.5 91.69.5 90 8 83.06 8c-6.68 0-11.64-5.6-17.89-5.6-6 0-9.91 4.09-12.93 12.5 0 0-8.41 23.72-9.49 27.16a6.43 6.43 0 0 0-.22 1.94c0 9.22 36.3 39.45 84.94 39.45M127.47 96.37c-35.55 0-75.36-20.11-75.36-40.52 0-4.06 1.47-8.11 3.43-12.49l-10.26.05c-12.44 0-14.33 6.07-24.1 34.46C12.44 104.75 3.5 116.68 3.5 121.63c0 7.36 16 22.87 65 22.87 37.19 0 78.58-9.17 87.32-33a12.56 12.56 0 0 0 .59-3.71c0-8.38-10.72-11.42-28.94-11.42"/>
+      </svg>
+      Sankey Scorecard
+    </h1>
+    <button class="btn-masthead" id="refreshBtn" onclick="refreshData()">Refresh Data</button>
+  </header>
+
+  <main class="page-content">
+    <rh-accordion>
+      <rh-accordion-header>
+        <h2>Scoring Methodology</h2>
+      </rh-accordion-header>
+      <rh-accordion-panel>
+        <div class="methodology-content">
+          <h3>Overview</h3>
+          <p>Teams are scored on two dimensions for a composite score of 0&ndash;100.</p>
+
+          <h3>Dimension 1: Categorization Rate (70 points)</h3>
+          <p>Percentage of issues with the Activity Type field set. Measures whether the team has adopted the Sankey framework by categorizing their work. All six categories (including Associate Wellness) count.</p>
+          <p><strong>Formula:</strong> <code>(categorized issues / total issues) &times; 70</code></p>
+
+          <h3>Dimension 2: Distribution Alignment (30 points)</h3>
+          <p>How well the team's work distribution across priority categories matches the target allocation. Associate Wellness issues are excluded from this calculation.</p>
+
+          <h3>Target Distribution</h3>
+          <table>
+            <thead><tr><th>Category</th><th>Target</th></tr></thead>
+            <tbody>
+              <tr><td>Incidents &amp; Support</td><td>13.6%</td></tr>
+              <tr><td>Security &amp; Compliance</td><td>13.6%</td></tr>
+              <tr><td>Quality / Stability / Reliability</td><td>25.0%</td></tr>
+              <tr><td>Future Sustainability</td><td>23.9%</td></tr>
+              <tr><td>Product / Portfolio Work</td><td>23.9%</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Asymmetric Penalty Weights</h3>
+          <p>Deviations from target are penalized asymmetrically by category priority:</p>
+          <table>
+            <thead><tr><th>Rank</th><th>Category</th><th>Over</th><th>Under</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>Incidents &amp; Support</td><td>0.50</td><td>1.50</td></tr>
+              <tr><td>2</td><td>Security &amp; Compliance</td><td>0.75</td><td>1.25</td></tr>
+              <tr><td>3</td><td>Quality / Stability / Reliability</td><td>1.00</td><td>1.00</td></tr>
+              <tr><td>4</td><td>Future Sustainability</td><td>1.25</td><td>0.75</td></tr>
+              <tr><td>5</td><td>Product / Portfolio Work</td><td>1.50</td><td>0.50</td></tr>
+            </tbody>
+          </table>
+          <p>Over-allocating to high-priority categories is penalized less; under-allocating to high-priority categories is penalized more.</p>
+
+          <h3>Grade Scale</h3>
+          <table>
+            <thead><tr><th>Grade</th><th>Score</th></tr></thead>
+            <tbody>
+              <tr><td>A</td><td>90 &ndash; 100</td></tr>
+              <tr><td>B</td><td>75 &ndash; 89</td></tr>
+              <tr><td>C</td><td>60 &ndash; 74</td></tr>
+              <tr><td>D</td><td>45 &ndash; 59</td></tr>
+              <tr><td>F</td><td>0 &ndash; 44</td></tr>
+              <tr><td>&ndash;</td><td>No data</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Aggregation</h3>
+          <p>Pillar and organization scores are issue-count-weighted averages. Teams with no data are excluded from aggregation.</p>
+        </div>
+      </rh-accordion-panel>
+    </rh-accordion>
+
+    <div id="app"></div>
+  </main>
+
+  <script>
+    const state = {
+      data: null,
+      loading: true,
+      error: null,
+      sortColumn: 'score',
+      sortAsc: false,
+      filters: {
+        startDate: '',
+        endDate: '',
+        status: ''
+      }
+    };
+
+    const COLUMNS = [
+      { key: 'name', label: 'Team', tooltip: null, numeric: false },
+      { key: 'grade', label: 'Grade', tooltip: 'Letter grade: A (90-100), B (75-89), C (60-74), D (45-59), F (0-44)', numeric: false },
+      { key: 'score', label: 'Score', tooltip: 'Combined score out of 100 (Categorization Rate + Distribution Alignment)', numeric: true },
+      { key: 'categorization', label: 'Categorization %', tooltip: 'Percentage of issues with an Activity Type field set (worth up to 70 points)', numeric: true },
+      { key: 'distribution', label: 'Distribution %', tooltip: 'How well the work distribution matches target allocation across priority categories (worth up to 30 points)', numeric: true },
+      { key: 'issues', label: 'Issues', tooltip: 'Total number of scored issues for this team', numeric: true }
+    ];
+
+    function gradeClass(grade) {
+      if (grade === '-' || !grade) return 'grade-nil';
+      return 'grade-' + grade;
+    }
+
+    function fmtScore(val) {
+      if (val === null || val === undefined) return '-';
+      return val.toFixed(1);
+    }
+
+    function fmtPct(val) {
+      if (val === null || val === undefined) return '-';
+      return val.toFixed(1) + '%';
+    }
+
+    function categorizationPct(score) {
+      if (score.categorization_rate === null || score.categorization_rate === undefined) return null;
+      return (score.categorization_rate / 70) * 100;
+    }
+
+    function distributionPct(score) {
+      if (score.distribution_alignment === null || score.distribution_alignment === undefined) return null;
+      return (score.distribution_alignment / 30) * 100;
+    }
+
+    function sortValue(row, col) {
+      const s = row.score;
+      switch (col) {
+        case 'name': return row.name.toLowerCase();
+        case 'grade': return gradeOrder(s.grade);
+        case 'score': return s.total !== null && s.total !== undefined ? s.total : -1;
+        case 'categorization': {
+          const v = categorizationPct(s);
+          return v !== null ? v : -1;
+        }
+        case 'distribution': {
+          const v = distributionPct(s);
+          return v !== null ? v : -1;
+        }
+        case 'issues': return s.issue_count;
+        default: return 0;
+      }
+    }
+
+    function gradeOrder(g) {
+      const order = { 'A': 5, 'B': 4, 'C': 3, 'D': 2, 'F': 1, '-': 0 };
+      return order[g] !== undefined ? order[g] : -1;
+    }
+
+    function flattenRows(data) {
+      const rows = [];
+      if (!data || !data.organizations) return rows;
+
+      for (const org of data.organizations) {
+        rows.push({ type: 'org', name: org.name, score: org.score, id: 'org-' + org.identifier });
+
+        for (const pillar of org.pillars) {
+          rows.push({ type: 'pillar', name: pillar.name, score: pillar.score, id: 'pillar-' + pillar.identifier });
+
+          for (const team of pillar.teams) {
+            rows.push({ type: 'team', name: team.name, score: team.score, id: 'team-' + team.identifier });
+          }
+        }
+      }
+      return rows;
+    }
+
+    function sortRows(rows) {
+      const groups = [];
+      let currentOrg = null;
+      let currentPillar = null;
+
+      for (const row of rows) {
+        if (row.type === 'org') {
+          currentOrg = { org: row, pillars: [] };
+          groups.push(currentOrg);
+        } else if (row.type === 'pillar') {
+          currentPillar = { pillar: row, teams: [] };
+          if (currentOrg) currentOrg.pillars.push(currentPillar);
+        } else if (row.type === 'team') {
+          if (currentPillar) currentPillar.teams.push(row);
+        }
+      }
+
+      const dir = state.sortAsc ? 1 : -1;
+      const col = state.sortColumn;
+
+      for (const g of groups) {
+        for (const p of g.pillars) {
+          p.teams.sort((a, b) => {
+            const va = sortValue(a, col);
+            const vb = sortValue(b, col);
+            if (typeof va === 'string') return dir * va.localeCompare(vb);
+            return dir * (va - vb);
+          });
+        }
+      }
+
+      const result = [];
+      for (const g of groups) {
+        result.push(g.org);
+        for (const p of g.pillars) {
+          result.push(p.pillar);
+          for (const t of p.teams) {
+            result.push(t);
+          }
+        }
+      }
+      return result;
+    }
+
+    function handleSort(col) {
+      if (state.sortColumn === col) {
+        state.sortAsc = !state.sortAsc;
+      } else {
+        state.sortColumn = col;
+        state.sortAsc = col === 'name';
+      }
+      render();
+    }
+
+    function renderCell(row, col) {
+      const s = row.score;
+      switch (col.key) {
+        case 'name': return esc(row.name);
+        case 'grade': return '<span class="grade ' + gradeClass(s.grade) + '">' + esc(s.grade) + '</span>';
+        case 'score': return fmtScore(s.total);
+        case 'categorization': return fmtPct(categorizationPct(s));
+        case 'distribution': return fmtPct(distributionPct(s));
+        case 'issues': return s.issue_count;
+        default: return '';
+      }
+    }
+
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function fmtDate(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function renderFilterBar() {
+      let html = '<div class="filter-bar">';
+      html += '<label>Start date <input type="date" id="filterStartDate" value="' + esc(state.filters.startDate) + '"></label>';
+      html += '<label>End date <input type="date" id="filterEndDate" value="' + esc(state.filters.endDate) + '"></label>';
+      html += '<label>Status <select id="filterStatus">';
+      html += '<option value=""' + (state.filters.status === '' ? ' selected' : '') + '>All</option>';
+      html += '<option value="closed"' + (state.filters.status === 'closed' ? ' selected' : '') + '>Closed</option>';
+      html += '<option value="in_progress"' + (state.filters.status === 'in_progress' ? ' selected' : '') + '>In Progress</option>';
+      html += '</select></label>';
+      html += '<button class="btn-filter" onclick="applyFilters()">Apply</button>';
+      if (state.filters.startDate || state.filters.endDate || state.filters.status) {
+        html += '<button class="btn-filter-clear" onclick="clearFilters()">Clear</button>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function applyFilters() {
+      state.filters.startDate = document.getElementById('filterStartDate').value;
+      state.filters.endDate = document.getElementById('filterEndDate').value;
+      state.filters.status = document.getElementById('filterStatus').value;
+      loadData();
+    }
+
+    function clearFilters() {
+      state.filters.startDate = '';
+      state.filters.endDate = '';
+      state.filters.status = '';
+      loadData();
+    }
+
+    function renderScopeInfo(data) {
+      const prev = data.previous_sprint;
+      const curr = data.current_sprint;
+      const days = data.sprint_duration_days;
+      const af = data.active_filters;
+      const statusFilter = af && af.issue_status ? af.issue_status : '';
+
+      let html = '<div class="scope-info">';
+      html += '<div class="scope-info-title">Data Scope</div>';
+
+      // Build description based on active filters
+      if (af) {
+        const parts = [];
+        if (statusFilter === 'closed') {
+          parts.push('Showing <strong>closed issues</strong> only');
+        } else if (statusFilter === 'in_progress') {
+          parts.push('Showing <strong>in-progress issues</strong> only');
+        } else {
+          parts.push('Showing <strong>closed</strong> and <strong>in-progress</strong> issues');
+        }
+        if (af.start_date || af.end_date) {
+          let range = '';
+          if (af.start_date && af.end_date) {
+            range = ' from ' + fmtDate(af.start_date) + ' to ' + fmtDate(af.end_date);
+          } else if (af.start_date) {
+            range = ' from ' + fmtDate(af.start_date) + ' onward';
+          } else {
+            range = ' up to ' + fmtDate(af.end_date);
+          }
+          if (statusFilter === 'in_progress') {
+            parts[0] += '. Date range' + range + ' does not apply to in-progress issues.';
+          } else {
+            parts[0] += '. Closed issue cadences are filtered to those overlapping' + range + '.';
+            if (statusFilter !== 'closed') {
+              parts[0] += ' In-progress issues are not date-filtered.';
+            }
+          }
+        } else {
+          parts[0] += '.';
+        }
+        html += '<p>' + parts[0] + '</p>';
+      } else {
+        html += '<p>Scores combine <strong>closed issues</strong> resolved during each cadence below, plus <strong>in-progress issues</strong> (current status, not date-filtered). Use the filters above to narrow by date range or issue status.</p>';
+      }
+
+      html += '<div class="scope-periods">';
+
+      if (statusFilter !== 'in_progress') {
+        if (prev && prev.since) {
+          html += '<span class="scope-period">';
+          html += '<span class="scope-period-label">Previous cadence:</span>';
+          html += '<span class="scope-period-dates">' + fmtDate(prev.since) + ' &ndash; ' + fmtDate(prev.until) + '</span>';
+          html += '</span>';
+        }
+
+        if (curr && curr.since) {
+          html += '<span class="scope-period">';
+          html += '<span class="scope-period-label">Current cadence:</span>';
+          html += '<span class="scope-period-dates">' + fmtDate(curr.since) + ' &ndash; ' + fmtDate(curr.until) + '</span>';
+          html += '</span>';
+        }
+      }
+
+      if (days) {
+        html += '<span class="scope-period">';
+        html += '<span class="scope-period-label">Cadence length:</span>';
+        html += '<span class="scope-period-dates">' + days + ' days</span>';
+        html += '</span>';
+      }
+
+      html += '</div></div>';
+      return html;
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+
+      if (state.loading) {
+        app.innerHTML = '<div class="state-loading"><rh-spinner size="lg"></rh-spinner><span>Loading scorecard data\u2026</span></div>';
+        return;
+      }
+
+      if (state.error) {
+        app.innerHTML = '<div class="state-error"><p class="error-message">' + esc(state.error) + '</p><button class="btn-link" onclick="loadData()">Retry</button></div>';
+        return;
+      }
+
+      if (!state.data || !state.data.organizations || state.data.organizations.length === 0) {
+        app.innerHTML = '<div class="state-empty"><p>No scorecard data available.</p><p>Click <strong>Refresh Data</strong> to fetch data from Jira.</p></div>';
+        return;
+      }
+
+      const allRows = flattenRows(state.data);
+      const sorted = sortRows(allRows);
+
+      let html = '';
+
+      if (state.data.generated_at) {
+        const d = new Date(state.data.generated_at);
+        html += '<div class="meta-line">Generated: ' + d.toLocaleString() + '</div>';
+      }
+
+      html += renderFilterBar();
+      html += renderScopeInfo(state.data);
+
+      html += '<div class="scorecard-card"><rh-table><table class="scorecard-table"><thead><tr>';
+
+      for (const col of COLUMNS) {
+        const isSorted = state.sortColumn === col.key;
+        const cls = isSorted ? 'sorted' : '';
+        const arrow = isSorted ? (state.sortAsc ? '\u25B2' : '\u25BC') : '\u2195';
+        const tip = col.tooltip ? ' title="' + esc(col.tooltip) + '"' : '';
+        const numCls = col.numeric ? ' col-numeric' : '';
+        html += '<th scope="col" class="' + cls + numCls + '"' + tip + ' onclick="handleSort(\'' + col.key + '\')">';
+        html += esc(col.label) + ' <span class="sort-arrow">' + arrow + '</span></th>';
+      }
+
+      html += '</tr></thead><tbody>';
+
+      for (const row of sorted) {
+        let rowCls = 'row-' + row.type;
+
+        html += '<tr class="' + rowCls + '">';
+        for (const col of COLUMNS) {
+          const numCls = col.numeric ? ' class="col-numeric"' : '';
+          html += '<td' + numCls + '>' + renderCell(row, col) + '</td>';
+        }
+        html += '</tr>';
+      }
+
+      html += '</tbody></table></rh-table></div>';
+      app.innerHTML = html;
+    }
+
+    async function loadData() {
+      state.loading = true;
+      state.error = null;
+      render();
+
+      try {
+        const params = new URLSearchParams();
+        if (state.filters.startDate) params.set('start_date', state.filters.startDate);
+        if (state.filters.endDate) params.set('end_date', state.filters.endDate);
+        if (state.filters.status) params.set('status', state.filters.status);
+        const qs = params.toString();
+        const resp = await fetch('/api/scorecard' + (qs ? '?' + qs : ''));
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => null);
+          state.error = (body && body.message) ? body.message : 'Failed to load scorecard (HTTP ' + resp.status + ')';
+        } else {
+          state.data = await resp.json();
+        }
+      } catch (e) {
+        state.error = 'Network error: ' + e.message;
+      }
+
+      state.loading = false;
+      render();
+    }
+
+    async function refreshData() {
+      const btn = document.getElementById('refreshBtn');
+      btn.disabled = true;
+      btn.textContent = 'Refreshing\u2026';
+
+      try {
+        const resp = await fetch('/api/refresh_data', { method: 'POST' });
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => null);
+          alert((body && body.message) ? body.message : 'Refresh failed (HTTP ' + resp.status + ')');
+          btn.disabled = false;
+          btn.textContent = 'Refresh Data';
+          return;
+        }
+
+        pollRefresh();
+      } catch (e) {
+        alert('Network error: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = 'Refresh Data';
+      }
+    }
+
+    function pollRefresh() {
+      const btn = document.getElementById('refreshBtn');
+      const poll = async () => {
+        try {
+          const resp = await fetch('/api/refresh_status');
+          const data = await resp.json();
+          if (data.status === 'running') {
+            setTimeout(poll, 2000);
+          } else {
+            btn.disabled = false;
+            btn.textContent = 'Refresh Data';
+            loadData();
+          }
+        } catch {
+          btn.disabled = false;
+          btn.textContent = 'Refresh Data';
+        }
+      };
+      poll();
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

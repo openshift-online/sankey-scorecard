@@ -1,0 +1,208 @@
+# Sankey Scorecard - Resource Map Configuration
+#
+# This file defines the organizational structure, team issue ownership rules,
+# Jira field configuration, and scoring parameters used by the scorecard.
+#
+# Location: config/resource-map.yaml
+
+# ---------------------------------------------------------------------------
+# Jira Configuration
+# ---------------------------------------------------------------------------
+# Credentials (jira_url, jira_pat) are provided via CLI flags, NOT in this file.
+
+jira:
+  # The Activity Type custom field ID (e.g., customfield_12319440) is NOT
+  # configured here. It is an instance-wide value provided at runtime via
+  # the --activity-type-field flag.
+
+  # Issue types included in scoring. Container types (Epic, Initiative,
+  # Feature) are excluded by default as they represent planning containers,
+  # not sprint-level work items.
+  scored_issue_types:
+    - Story
+    - Bug
+    - Task
+
+  # Optional: Only include issues with these statuses.
+  # Omit or leave empty to include all statuses.
+  # scored_issue_statuses:
+  #   - Open
+  #   - In Progress
+  #   - Code Review
+  #   - To Do
+
+  # Delay between Jira API calls in milliseconds (rate limiting).
+  request_delay_ms: 100
+
+# ---------------------------------------------------------------------------
+# Sprint Calendar
+# ---------------------------------------------------------------------------
+# Sprint boundaries are calculated from a reference date and duration.
+# The reference date is any known sprint start date; all other sprint
+# boundaries are derived by adding/subtracting multiples of the duration.
+#
+# The scorecard evaluates the current sprint and the previous sprint
+# (two scoring periods total, covering 6 weeks with the default duration).
+
+# A known sprint start date (YYYY-MM-DD). All sprint boundaries are
+# calculated relative to this anchor date.
+sprint_reference_date: "2026-02-11"
+
+# Length of each sprint in days. Default: 21 (3 weeks).
+sprint_duration_days: 21
+
+# ---------------------------------------------------------------------------
+# Organizational Structure
+# ---------------------------------------------------------------------------
+# Defines the hierarchy: Organization > Pillar > Team
+#
+# All identifiers must be:
+#   - Globally unique across all orgs, pillars, and teams
+#   - Lowercase, alphanumeric with hyphens (no spaces or underscores)
+#   - Not a reserved word: serve, refresh-data, version, help
+#
+# Each team defines an ownership method for resolving its Jira issues:
+#   - component:   project + component list
+#   - team_field:   project + Team custom field value
+#   - jql:          raw JQL query
+
+organizations:
+  - name: Hybrid Cloud Management
+    identifier: hcm
+    pillars:
+
+      # ---- ARO Pillar ----
+      - name: ARO
+        identifier: aro
+        teams:
+          - name: ARO First Party
+            identifier: aro-first-party
+            ownership:
+              method: component
+              project: ARO
+              components:
+                - aro-hcp-service-lifecycle
+
+          - name: ARO Cluster Lifecycle East
+            identifier: aro-cl-east
+            ownership:
+              method: component
+              project: ARO
+              components:
+                - clusters-service
+                - aro-hcp-clusters-service
+                - aro-hcp-clusters-service-east
+
+          - name: ARO QE
+            identifier: aro-qe
+            ownership:
+              method: component
+              project: ARO
+              components:
+                - aro-hcp-qe
+
+      # ---- Fleet Pillar ----
+      - name: Fleet
+        identifier: fleet
+        teams:
+          - name: Fleet Console OCM
+            identifier: fleet-console-ocm
+            ownership:
+              method: component
+              project: OCMUI
+              components:
+                - ocm-console
+
+          - name: Fabric Access
+            identifier: fabric-access
+            ownership:
+              method: component
+              project: RHCLOUD
+              components:
+                - RBAC
+                - 3Scale
+                - Turnpike
+                - Back Office Proxy
+                - Entitlements
+                - uhc-auth-proxy
+
+          - name: Fabric Kessel
+            identifier: fabric-kessel
+            ownership:
+              method: component
+              project: RHCLOUD
+              components:
+                - Management Fabric
+
+          - name: Hyperfleet Orion
+            identifier: hyperfleet-orion
+            ownership:
+              method: team_field
+              project: HYPERFLEET
+              team_field_value: Orion
+
+          - name: Management Applications
+            identifier: mgmt-applications
+            ownership:
+              method: jql
+              jql: >-
+                project = ACM AND
+                component in (
+                  "Application Lifecycle",
+                  "Cluster Lifecycle",
+                  "Backup & Restore",
+                  "VolSync",
+                  "Search"
+                )
+
+      # ---- ROSA Pillar ----
+      - name: ROSA
+        identifier: rosa
+        teams:
+          - name: Cluster Service Coffee
+            identifier: rosa-coffee
+            ownership:
+              method: team_field
+              project: OCM
+              team_field_value: Coffee
+
+          - name: Aurora
+            identifier: rosa-aurora
+            ownership:
+              method: team_field
+              project: SREP
+              team_field_value: Aurora
+
+          - name: Hulk
+            identifier: rosa-hulk
+            ownership:
+              method: team_field
+              project: SREP
+              team_field_value: Hulk
+
+          - name: FedRAMP Core
+            identifier: rosa-fedramp-core
+            ownership:
+              method: component
+              project: HCMSEC
+              components:
+                - FedRAMP Core
+
+      # ---- Platform Security Pillar ----
+      - name: Platform Security
+        identifier: platform-security
+        teams:
+          - name: Cloud Security
+            identifier: cloud-security
+            ownership:
+              method: jql
+              jql: >-
+                project = HCMSEC AND
+                component not in ("FedRAMP Core", "GovCloud")
+
+          - name: Engineering Productivity
+            identifier: engr-productivity
+            ownership:
+              method: team_field
+              project: RHCLOUD
+              team_field_value: Engineering Productivity

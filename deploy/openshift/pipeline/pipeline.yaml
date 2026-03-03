@@ -1,0 +1,49 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: sankey-scorecard-build
+  namespace: rosa-dashboard--pipeline
+spec:
+  params:
+    - name: git-url
+      type: string
+      default: ssh://git@ssh.github.com:443/tiwillia/sankey-scorecard.git
+    - name: git-revision
+      type: string
+      default: main
+    - name: image-tag
+      type: string
+      default: latest
+  workspaces:
+    - name: source
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+        - name: depth
+          value: "1"
+      workspaces:
+        - name: output
+          workspace: source
+    - name: build
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      runAfter:
+        - git-clone
+      params:
+        - name: IMAGE
+          value: image-registry.openshift-image-registry.svc:5000/rosa-dashboard--pipeline/sankey-scorecard:$(params.image-tag)
+        - name: DOCKERFILE
+          value: ./Containerfile
+        - name: CONTEXT
+          value: .
+      workspaces:
+        - name: source
+          workspace: source

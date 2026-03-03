@@ -1,0 +1,45 @@
+sprint_reference_date: "2026-02-11"
+sprint_duration_days: 21
+
+jira:
+  scored_issue_types:
+    - Story
+    - Bug
+    - Task
+  in_progress_statuses:
+    - In Progress
+    - Code Review
+    - Review
+  request_delay_ms: 0
+
+organizations:
+  - name: Integration Org
+    identifier: integ-org
+    pillars:
+      - name: Pillar One
+        identifier: pillar-one
+        teams:
+          - name: Team Alpha
+            identifier: team-alpha
+            ownership:
+              method: component
+              project: INTEG
+              components:
+                - comp-alpha
+          - name: Team Beta
+            identifier: team-beta
+            ownership:
+              method: component
+              project: INTEG
+              components:
+                - comp-beta
+      - name: Pillar Two
+        identifier: pillar-two
+        teams:
+          - name: Team Gamma
+            identifier: team-gamma
+            ownership:
+              method: component
+              project: INTEG
+              components:
+                - comp-gamma

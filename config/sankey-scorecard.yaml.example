@@ -1,0 +1,122 @@
+# Sankey Scorecard - Resource Map Configuration (Example / Template)
+#
+# Copy this file to config/resource-map.yaml and fill in your organization's values.
+# The binary looks for the config in this order:
+#   1. --config / -c flag
+#   2. RESOURCE_MAP_PATH environment variable
+#   3. /etc/sankey-scorecard/resource-map.yaml (default for container deployments)
+#
+# This file is NOT embedded in the binary. It must be provided at runtime.
+
+# ---------------------------------------------------------------------------
+# Jira Configuration
+# ---------------------------------------------------------------------------
+# Credentials (jira_url, jira_api_token) are provided via CLI flags, NOT here.
+
+jira:
+  # Custom field ID for the Jira "Activity Type" field.
+  # Find it via: GET /rest/api/2/field on your Jira instance.
+  activity_type_field: customfield_XXXXXXXX
+
+  # Issue types included in scoring. Container types (Epic, Initiative,
+  # Feature) are typically excluded as they are planning containers, not
+  # sprint-level work items.
+  scored_issue_types:
+    - Story
+    - Bug
+    - Task
+
+  # Statuses that indicate an issue is currently being worked on.
+  # Used to collect the "in-progress" issue set for scoring.
+  in_progress_statuses:
+    - In Progress
+    - Code Review
+    - Review
+
+  # Delay between Jira API calls in milliseconds (rate limiting).
+  request_delay_ms: 100
+
+# ---------------------------------------------------------------------------
+# Sprint Calendar
+# ---------------------------------------------------------------------------
+# Sprint boundaries are calculated from a reference date and duration.
+# The reference date is any known sprint start date; all other sprint
+# boundaries are derived by adding/subtracting multiples of the duration.
+
+# A known sprint start date (YYYY-MM-DD).
+sprint_reference_date: "2026-01-01"
+
+# Length of each sprint in days. Default: 21 (3 weeks).
+sprint_duration_days: 21
+
+# ---------------------------------------------------------------------------
+# Organizational Structure
+# ---------------------------------------------------------------------------
+# Defines the hierarchy: Organization > Pillar > Team
+#
+# All identifiers must be:
+#   - Globally unique across all orgs, pillars, and teams
+#   - Lowercase, alphanumeric with hyphens (no spaces or underscores)
+#   - Not a reserved word: serve, refresh-data, version, help
+#
+# Each team defines an ownership method for resolving its Jira issues.
+# Available methods:
+#
+#   component:      Match issues by Jira project + component(s)
+#   team_field:     Match by Jira project + Team custom field value
+#   jql:            Raw JQL query for full control
+#   sprint_board:   Match issues from specific Jira Agile board(s)
+
+organizations:
+  - name: Example Organization
+    identifier: example-org
+    pillars:
+      - name: Example Pillar
+        identifier: example-pillar
+        teams:
+          # --- Component-based ownership ---
+          - name: Example Team A
+            identifier: example-team-a
+            ownership:
+              method: component
+              project: PROJ         # Jira project key
+              components:
+                - component-name-1
+                - component-name-2
+
+          # --- Team field-based ownership ---
+          - name: Example Team B
+            identifier: example-team-b
+            ownership:
+              method: team_field
+              project: PROJ
+              team_field_value: "TeamFieldValue"  # Value of the Team custom field
+
+          # --- Raw JQL ownership ---
+          - name: Example Team C
+            identifier: example-team-c
+            ownership:
+              method: jql
+              jql: >-
+                project = PROJ AND
+                component in ("some-component")
+
+          # --- Sprint board ownership ---
+          - name: Example Team D
+            identifier: example-team-d
+            ownership:
+              method: sprint_board
+              project: PROJ
+              boards:
+                - 12345   # Jira Agile board ID
+
+      - name: Another Pillar
+        identifier: another-pillar
+        teams:
+          - name: Another Team
+            identifier: another-team
+            ownership:
+              method: component
+              project: OTHER
+              components:
+                - some-component

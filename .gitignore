@@ -1,0 +1,4 @@
+tmp/
+sankey-scorecard
+coverage.out
+config/sankey-scorecard.yaml

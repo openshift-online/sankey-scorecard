@@ -1,0 +1,435 @@
+openapi: 3.0.3
+
+info:
+  title: Sankey Scorecard API
+  version: 0.0.1
+  description: |
+    Evaluates teams on their adherence to the Sankey planning framework by
+    analyzing Jira issue data and producing scorecard reports.
+
+    Scores are computed from two dimensions: Categorization Rate (60 pts) and
+    Distribution Alignment (40 pts). Issues are scoped to the current and
+    previous sprint, calculated from a configured reference date and 3-week
+    sprint duration. See the scoring model specification for details.
+  contact:
+    name: Timothy Williams
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+
+paths:
+  /api/:
+    get:
+      summary: Get OpenAPI specification
+      description: Returns this OpenAPI specification document.
+      operationId: getOpenAPISpec
+      tags:
+        - metadata
+      responses:
+        "200":
+          description: OpenAPI specification
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/scorecard:
+    get:
+      summary: Get scorecard
+      description: |
+        Returns the scorecard, optionally filtered by organization, pillar, or team.
+        When no filter is provided, returns the complete scorecard for all
+        organizations. Scores are computed on-read from the most recently
+        reconciled Jira data.
+
+        Each parameter takes only the entity's own name (not a qualified path).
+        All identifiers are expected to be globally unique. If an identifier is
+        ambiguous (matches multiple entities), the server returns HTTP 409 with
+        a message indicating which additional parameters are needed to
+        disambiguate.
+
+        Parameters can be combined to narrow scope. For example, `team=aurora`
+        alone is sufficient if "aurora" is unique. If not, the caller must also
+        provide `pillar` and/or `org` to disambiguate.
+      operationId: getScorecard
+      tags:
+        - scorecard
+      parameters:
+        - name: org
+          in: query
+          required: false
+          description: Organization name
+          schema:
+            type: string
+            example: hcm
+        - name: pillar
+          in: query
+          required: false
+          description: Pillar name (within an organization)
+          schema:
+            type: string
+            example: rosa
+        - name: team
+          in: query
+          required: false
+          description: Team name (within a pillar)
+          schema:
+            type: string
+            example: aurora
+      responses:
+        "200":
+          description: Scorecard (filtered to matching entities if a query parameter was provided)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FullScorecard"
+        "400":
+          description: Invalid filter combination
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Specified organization, pillar, or team not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: |
+            Ambiguous identifier. The provided name matches multiple entities.
+            The error message specifies which additional parameters (org, pillar)
+            are required to disambiguate.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: No data available. A refresh must be initiated first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/refresh_data:
+    post:
+      summary: Initiate data refresh
+      description: |
+        Starts an asynchronous reconciliation of Jira data for all configured teams.
+        Returns immediately with the refresh status. Only one refresh can run at a time.
+      operationId: refreshData
+      tags:
+        - reconciliation
+      responses:
+        "202":
+          description: Refresh initiated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshStatus"
+        "409":
+          description: A refresh is already in progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/refresh_status:
+    get:
+      summary: Get refresh status
+      description: |
+        Returns the status of the most recent or currently running data refresh.
+        This endpoint was added to address the gap in the original spec where
+        async refresh progress was not observable.
+      operationId: getRefreshStatus
+      tags:
+        - reconciliation
+      responses:
+        "200":
+          description: Current refresh status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshStatus"
+
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Machine-readable error code
+          example: not_found
+        message:
+          type: string
+          description: Human-readable error description
+          example: "Organization 'xyz' not found"
+      required:
+        - error
+        - message
+
+    Score:
+      type: object
+      description: |
+        Scoring breakdown. All numeric fields are nullable -- null indicates
+        "no data" (zero scored issues) rather than a score of 0.
+      properties:
+        total:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          nullable: true
+          description: Composite score (sum of all dimensions)
+        grade:
+          type: string
+          enum: ["A", "B", "C", "D", "F", "-"]
+          description: Letter grade. "-" indicates no data.
+        categorization_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 60
+          nullable: true
+          description: Points earned for Activity Type field completion (0-60)
+        distribution_alignment:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 40
+          nullable: true
+          description: Points earned for alignment with target Sankey distribution (0-40)
+        issue_count:
+          type: integer
+          minimum: 0
+          description: Total number of scored issues
+      required:
+        - total
+        - grade
+        - categorization_rate
+        - distribution_alignment
+        - issue_count
+
+    ActivityDistribution:
+      type: object
+      description: Issue counts per Sankey activity type category
+      properties:
+        associate_wellness:
+          type: integer
+          minimum: 0
+        incidents_support:
+          type: integer
+          minimum: 0
+        security_compliance:
+          type: integer
+          minimum: 0
+        quality_stability:
+          type: integer
+          minimum: 0
+        future_sustainability:
+          type: integer
+          minimum: 0
+        product_portfolio:
+          type: integer
+          minimum: 0
+        uncategorized:
+          type: integer
+          minimum: 0
+      required:
+        - associate_wellness
+        - incidents_support
+        - security_compliance
+        - quality_stability
+        - future_sustainability
+        - product_portfolio
+        - uncategorized
+
+    TeamScorecard:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Human-readable team name
+          example: Aurora
+        identifier:
+          type: string
+          description: Team identifier (local to pillar)
+          example: rosa-aurora
+        path:
+          type: string
+          description: "Fully qualified path: {org}/{pillar}/{team}"
+          example: hcm/rosa/rosa-aurora
+        score:
+          $ref: "#/components/schemas/Score"
+        distribution:
+          $ref: "#/components/schemas/ActivityDistribution"
+        periods:
+          type: array
+          description: |
+            Per-sprint score breakdowns. Contains two entries: the previous
+            sprint and the current sprint. Sprint boundaries are calculated
+            from the configured reference date and sprint duration.
+          items:
+            $ref: "#/components/schemas/PeriodScore"
+      required:
+        - name
+        - identifier
+        - path
+        - score
+        - distribution
+        - periods
+
+    PeriodScore:
+      type: object
+      description: |
+        Score for a single scoring period (sprint). Sprint boundaries are
+        calculated from the configured reference date and sprint duration.
+      properties:
+        label:
+          type: string
+          description: Display label showing the sprint date range
+          example: "2026-01-21 to 2026-02-11"
+        window:
+          $ref: "#/components/schemas/TimeWindow"
+        current:
+          type: boolean
+          description: True if this is the active (current) sprint
+        score:
+          $ref: "#/components/schemas/Score"
+        distribution:
+          $ref: "#/components/schemas/ActivityDistribution"
+      required:
+        - label
+        - window
+        - current
+        - score
+        - distribution
+
+    TimeWindow:
+      type: object
+      description: Time boundaries for a scoring period
+      properties:
+        since:
+          type: string
+          format: date-time
+          description: Start of the scoring window
+        until:
+          type: string
+          format: date-time
+          description: End of the scoring window
+      required:
+        - since
+        - until
+
+    PillarScorecard:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Human-readable pillar name
+          example: ROSA
+        identifier:
+          type: string
+          description: Pillar identifier (local to organization)
+          example: rosa
+        path:
+          type: string
+          description: "Qualified path: {org}/{pillar}"
+          example: hcm/rosa
+        score:
+          $ref: "#/components/schemas/Score"
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamScorecard"
+      required:
+        - name
+        - identifier
+        - path
+        - score
+        - teams
+
+    OrganizationScorecard:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Human-readable organization name
+          example: Hybrid Cloud Management
+        identifier:
+          type: string
+          description: Organization identifier
+          example: hcm
+        path:
+          type: string
+          description: Organization path (same as identifier for orgs)
+          example: hcm
+        score:
+          $ref: "#/components/schemas/Score"
+        pillars:
+          type: array
+          items:
+            $ref: "#/components/schemas/PillarScorecard"
+      required:
+        - name
+        - identifier
+        - path
+        - score
+        - pillars
+
+    FullScorecard:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the scorecard was computed
+        sprint_duration_days:
+          type: integer
+          description: Configured sprint duration in days
+          example: 21
+        current_sprint:
+          $ref: "#/components/schemas/TimeWindow"
+        previous_sprint:
+          $ref: "#/components/schemas/TimeWindow"
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationScorecard"
+      required:
+        - generated_at
+        - sprint_duration_days
+        - current_sprint
+        - previous_sprint
+        - organizations
+
+    RefreshStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["idle", "running", "completed", "failed"]
+          description: Current reconciliation state
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the refresh was initiated (null if idle)
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the refresh finished (null if idle or running)
+        error:
+          type: string
+          nullable: true
+          description: Error message if the refresh failed
+        issue_count:
+          type: integer
+          minimum: 0
+          description: Total issues reconciled (from last successful refresh)
+      required:
+        - status
+        - issue_count
